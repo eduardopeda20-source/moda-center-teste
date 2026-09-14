@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu perfil - Moda Center</title>
     <link rel="stylesheet" href="css/perfil_cliente.css">
+    <link rel="stylesheet" href="css/assistant.css">
+    <script src="js/assistant.js" defer></script>
 </head>
 <body>
     <main class="client-profile-app">
@@ -17,7 +19,7 @@
         <section class="profile-content">
             <div class="profile-card">
                 <div class="avatar-wrap"><div id="profileAvatar" class="profile-avatar">?</div><button id="editPhotoButton" class="photo-button" type="button" aria-label="Alterar foto">✎</button></div>
-                <div class="profile-identity"><h2 id="profileName">Cliente</h2><p id="profileEmail">email</p><button id="editProfileButton" class="edit-button" type="button">Editar perfil</button></div>
+                <div class="profile-identity"><h2 id="profileName">Cliente</h2><p id="profileEmail">email</p><button id="editProfileButton" class="edit-button" type="button"><span>✦</span> Editar meu perfil</button></div>
             </div>
             <div class="profile-stats"><div><strong id="purchaseCount">0</strong><span>Compras</span></div><div><strong id="itemCount">0</strong><span>Itens comprados</span></div></div>
             <p id="profileNote" class="profile-note" role="status"></p>
@@ -29,6 +31,7 @@
                 <div class="edit-heading"><div><p class="eyebrow">MINHA CONTA</p><h2 id="editTitle">Editar perfil</h2></div><button id="closeEdit" class="close-button" type="button" aria-label="Fechar">&times;</button></div>
                 <form id="profileForm">
                     <label>Nome de usuário<input id="nameInput" type="text" minlength="2" maxlength="40" required></label>
+                    <fieldset class="address-profile-fields"><legend>Endereço para entrega</legend><label>Nome de quem recebe<input id="addressRecipientInput" type="text" autocomplete="name"></label><label>CEP<input id="addressZipInput" type="text" inputmode="numeric" autocomplete="postal-code"></label><label>Rua e número<input id="addressStreetInput" type="text" autocomplete="street-address"></label><div class="address-row"><label>Cidade<input id="addressCityInput" type="text" autocomplete="address-level2"></label><label>Estado<input id="addressStateInput" type="text" maxlength="2" autocomplete="address-level1"></label></div><label>Complemento<input id="addressComplementInput" type="text" autocomplete="address-line2"></label></fieldset>
                     <label>Foto de perfil<input id="photoInput" type="file" accept="image/*"></label>
                     <img id="photoPreview" class="photo-preview" alt="Pré-visualização da foto" hidden>
                     <p id="editNote" class="edit-note"></p>

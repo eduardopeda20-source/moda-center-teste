@@ -30,11 +30,17 @@ const profileEditForm = document.getElementById("profileEditForm");
 const editProfileName = document.getElementById("editProfileName");
 const editProfileEmail = document.getElementById("editProfileEmail");
 const editStoreName = document.getElementById("editStoreName");
+const editStoreSector = document.getElementById("editStoreSector");
+const editStoreStreet = document.getElementById("editStoreStreet");
+const editStoreBox = document.getElementById("editStoreBox");
 const editProfileImage = document.getElementById("editProfileImage");
 const profileEditPreview = document.getElementById("profileEditPreview");
 const editStoreImage = document.getElementById("editStoreImage");
 const storeEditPreview = document.getElementById("storeEditPreview");
 const profileEditNote = document.getElementById("profileEditNote");
+const insightsBackdrop = document.getElementById("insightsBackdrop");
+const insightsContent = document.getElementById("insightsContent");
+const insightsTitle = document.getElementById("insightsTitle");
 let pendingProfileImage = session?.avatar || "";
 let pendingStoreImage = "";
 
@@ -128,6 +134,9 @@ function openProfileEditor() {
     editProfileName.value = currentUser?.name || "";
     editProfileEmail.value = currentUser?.email || "";
     editStoreName.value = currentStore.name || "";
+    editStoreSector.value = currentStore.location?.sector || "";
+    editStoreStreet.value = currentStore.location?.street || "";
+    editStoreBox.value = currentStore.location?.box || "";
     pendingStoreImage = currentStore.image || "";
     profileEditForm.querySelectorAll('input[name="segment"]').forEach(input => {
         input.checked = (currentStore.segments || []).includes(input.value);
@@ -162,9 +171,47 @@ document.getElementById("profileSettingsButton")?.addEventListener("click", () =
     settingsBackdrop?.setAttribute("aria-hidden", "false");
 });
 
-document.getElementById("latestOrdersButton")?.addEventListener("click", () => {
-    window.location.href = "pedidos_comerciante.html";
-});
+function escapeHtml(value) { return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function money(value) { return `R$ ${Number(value || 0).toFixed(2).replace(".", ",")}`; }
+function openInsights(title, content) { insightsTitle.textContent = title; insightsContent.innerHTML = content; insightsBackdrop.hidden = false; }
+function closeInsights() { insightsBackdrop.hidden = true; }
+
+function renderReports(orders = []) {
+    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    const sold = orders.reduce((sum, order) => sum + (order.items || []).reduce((itemSum, item) => itemSum + Number(item.quantity || 0), 0), 0);
+    const stock = myProducts.reduce((sum, product) => sum + Number(product.quantity || 0), 0);
+    const entered = stock + sold;
+    openInsights("Relatórios", `<div class="report-grid"><article><strong>${orders.length}</strong><span>Pedidos recebidos</span></article><article><strong>${sold}</strong><span>Itens vendidos</span></article><article><strong>${money(totalRevenue)}</strong><span>Faturamento</span></article><article><strong>${stock}</strong><span>Estoque atual</span></article><article><strong>${entered}</strong><span>Itens cadastrados</span></article><article><strong>${Math.max(0, entered - stock)}</strong><span>Itens que saíram</span></article></div><p class="insight-note">Atualizado com os produtos da loja e os pedidos registrados.</p>`);
+}
+
+function renderReviews() {
+    const products = myProducts;
+    const categories = [...new Set(products.map(product => product.category).filter(Boolean))];
+    openInsights("Minhas avaliações", `<div class="insight-filters"><select id="reviewProductFilter"><option value="all">Todos os produtos</option>${products.map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)}</option>`).join("")}</select><select id="reviewCategoryFilter"><option value="all">Todas as categorias</option>${categories.map(category => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}</select></div><div id="reviewsList"></div>`);
+    const draw = () => {
+        const productFilter = document.getElementById("reviewProductFilter").value;
+        const categoryFilter = document.getElementById("reviewCategoryFilter").value;
+        const reviews = products.flatMap(product => (Array.isArray(product.ratings) ? product.ratings : []).map(rating => ({ ...rating, productName: product.name, productId: product.id, category: product.category }))).filter(rating => (productFilter === "all" || String(rating.productId) === productFilter) && (categoryFilter === "all" || rating.category === categoryFilter));
+        document.getElementById("reviewsList").innerHTML = reviews.length ? reviews.map(rating => `<article class="review-item"><strong>${"★".repeat(Math.max(1, Number(rating.value || 0)))}${"☆".repeat(Math.max(0, 5 - Number(rating.value || 0)))}</strong><span>${escapeHtml(rating.productName)} · ${escapeHtml(rating.category)}</span><p>${escapeHtml(rating.comment || "Cliente avaliou este produto.")}</p></article>`).join("") : '<p class="insight-note">Nenhuma avaliação encontrada com esses filtros.</p>';
+    };
+    document.getElementById("reviewProductFilter").addEventListener("change", draw);
+    document.getElementById("reviewCategoryFilter").addEventListener("change", draw);
+    draw();
+}
+
+async function renderLatestOrders() {
+    openInsights("Últimas vendas", '<p class="insight-note">Carregando pedidos...</p>');
+    let orders = [];
+    if (window.location.protocol !== "file:") { try { const response = await fetch(`/api/orders?merchantId=${encodeURIComponent(session.id)}`, { cache: "no-store" }); if (response.ok) orders = (await response.json()).orders || []; } catch (error) {} }
+    const visibleOrders = orders.filter(order => !["enviado", "entregue"].includes(order.status)).sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
+    insightsContent.innerHTML = visibleOrders.length ? `<div class="latest-orders">${visibleOrders.map(order => `<article><div><strong>Pedido #${escapeHtml(order.id.slice(0, 8).toUpperCase())}</strong><small>${new Date(order.createdAt).toLocaleString("pt-BR")}</small></div><span class="order-pill status-${escapeHtml(order.status)}">${({ recebido: "Recebido", preparando: "Preparando", postado: "Postado" })[order.status] || escapeHtml(order.status)}</span><p>${(order.items || []).length} item(ns) · ${money(order.total)}</p></article>`).join("")}</div><a class="insight-link" href="pedidos_comerciante.html">Gerenciar todos os pedidos</a>` : '<p class="insight-note">Nenhuma venda pendente. Quando o pedido for enviado para entrega, ele sai desta lista.</p>';
+}
+
+document.getElementById("reportsButton")?.addEventListener("click", async () => { let orders = []; if (window.location.protocol !== "file:") { try { const response = await fetch(`/api/orders?merchantId=${encodeURIComponent(session.id)}`, { cache: "no-store" }); if (response.ok) orders = (await response.json()).orders || []; } catch (error) {} } renderReports(orders); });
+document.getElementById("reviewsButton")?.addEventListener("click", renderReviews);
+document.getElementById("latestOrdersButton")?.addEventListener("click", renderLatestOrders);
+document.getElementById("insightsClose")?.addEventListener("click", closeInsights);
+insightsBackdrop?.addEventListener("click", event => { if (event.target === insightsBackdrop) closeInsights(); });
 
 document.getElementById("settingsClose")?.addEventListener("click", () => {
     settingsBackdrop?.classList.remove("open");
@@ -172,6 +219,7 @@ document.getElementById("settingsClose")?.addEventListener("click", () => {
 });
 
 document.getElementById("editProfileButton")?.addEventListener("click", openProfileEditor);
+document.getElementById("profileEditHeroButton")?.addEventListener("click", openProfileEditor);
 document.querySelector(".profile-camera")?.addEventListener("click", openProfileEditor);
 document.getElementById("profileEditClose")?.addEventListener("click", closeProfileEditor);
 profileEditBackdrop?.addEventListener("click", event => {
@@ -209,12 +257,13 @@ profileEditForm?.addEventListener("submit", event => {
     const name = editProfileName.value.trim();
     const email = editProfileEmail.value.trim().toLowerCase();
     const storeName = editStoreName.value.trim();
+    const location = { sector: editStoreSector.value.trim(), street: editStoreStreet.value.trim(), box: editStoreBox.value.trim() };
     const segments = [...profileEditForm.querySelectorAll('input[name="segment"]:checked')].map(input => input.value);
     const users = JSON.parse(localStorage.getItem("modaCenterUsers") || "[]");
     const user = users.find(item => String(item.id) === String(session?.id));
 
-    if (!name || !email || !storeName || segments.length === 0) {
-        profileEditNote.textContent = "Preencha os dados e selecione pelo menos um segmento.";
+    if (!name || !email || !storeName || segments.length === 0 || !location.sector || !location.street || !location.box) {
+        profileEditNote.textContent = "Preencha os dados, a localização e selecione pelo menos um segmento.";
         return;
     }
 
@@ -238,8 +287,11 @@ profileEditForm?.addEventListener("submit", event => {
     const updatedSession = { ...session, name, email, avatar: pendingProfileImage || null };
     localStorage.setItem("modaCenterSession", JSON.stringify(updatedSession));
     Object.assign(session, updatedSession);
-    stores[session.id] = { ...stores[session.id], name: storeName, segments, image: pendingStoreImage || null, createdAt: stores[session.id]?.createdAt || Date.now() };
+    stores[session.id] = { ...stores[session.id], name: storeName, segments, image: pendingStoreImage || null, location, createdAt: stores[session.id]?.createdAt || Date.now() };
     localStorage.setItem("modaCenterStores", JSON.stringify(stores));
+    if (window.location.protocol !== "file:") {
+        fetch(`/api/stores/${encodeURIComponent(session.id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...stores[session.id], ownerId: session.id }) }).catch(() => {});
+    }
 
     profileViewName.textContent = name.charAt(0).toUpperCase() + name.slice(1);
     profileStoreName.textContent = storeName;
@@ -264,6 +316,7 @@ document.addEventListener("keydown", event => {
         settingsBackdrop?.classList.remove("open");
         settingsBackdrop?.setAttribute("aria-hidden", "true");
         closeProfileEditor();
+        closeInsights();
     }
 });
 

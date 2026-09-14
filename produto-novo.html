@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#5720B7">
     <title>Novo produto - Moda Center</title>
     <link rel="stylesheet" href="css/produto-novo.css">
+    <link rel="stylesheet" href="css/assistant.css">
 </head>
 
 <body>
@@ -128,6 +129,37 @@
         </form>
 
         <div class="toast" id="toast"></div>
+
+        <!-- Modal do Tutorial de Cadastro de Produto -->
+<div class="tutorial-modal" id="tutorialModal" style="display: none;">
+    <div class="tutorial-card">
+        <div class="tutorial-header">
+            <span class="assistant-icon">🤖</span>
+            <h2 id="tutorialTitle">Cadastrar Novo Produto</h2>
+        </div>
+
+        <div class="tutorial-body">
+            <p id="tutorialText">
+                Preencha as informações do produto para disponibilizá-lo em seu catálogo.
+            </p>
+
+            <div class="tutorial-steps-indicator">
+                <span class="step-dot active" data-step="1"></span>
+                <span class="step-dot" data-step="2"></span>
+                <span class="step-dot" data-step="3"></span>
+                <span class="step-dot" data-step="4"></span>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="btn-secondary" id="skipTutorialBtn">Pular</button>
+            <button class="btn-primary" id="nextTutorialBtn">Próximo</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/assistant.js" defer></script>
+</body>
 
     </main>
 

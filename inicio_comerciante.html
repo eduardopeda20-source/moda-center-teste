@@ -12,6 +12,8 @@
 
     <link rel="stylesheet" href="css/inicio_comerciante.css">
     <link rel="stylesheet" href="css/comerciante-navigation.css">
+    <link rel="stylesheet" href="css/assistant.css">
+    <script src="js/assistant.js" defer></script>
 </head>
 
 <body>
@@ -284,6 +286,35 @@
             <div id="storeModalContent"></div>
         </section>
     </div>
+    <!-- =====================================================
+     MODAL DE TUTORIAL - INÍCIO DO COMERCIANTE
+====================================================== -->
+<div class="tutorial-modal" id="tutorialModal" style="display: none;">
+    <div class="tutorial-card">
+        <div class="tutorial-header">
+            <span class="assistant-icon">🤖</span>
+            <h2 id="tutorialTitle">Bem-vindo(a) ao seu Painel!</h2>
+        </div>
+        
+        <div class="tutorial-body">
+            <p id="tutorialText">
+                Este é o seu painel de controle principal no Moda Center. Veja um resumo rápido de tudo o que você pode fazer por aqui.
+            </p>
+            
+            <div class="tutorial-steps-indicator">
+                <span class="step-dot active" data-step="1"></span>
+                <span class="step-dot" data-step="2"></span>
+                <span class="step-dot" data-step="3"></span>
+                <span class="step-dot" data-step="4"></span>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="btn-secondary" id="skipTutorialBtn">Pular</button>
+            <button class="btn-primary" id="nextTutorialBtn">Próximo</button>
+        </div>
+    </div>
+</div>
 
     <script src="js/comerciante-guard.js"></script>
     <script src="js/inicio_comerciante.js"></script>

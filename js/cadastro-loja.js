@@ -17,13 +17,13 @@ const STORES_KEY = "modaCenterStores";
 // os dados de novo — manda direto para a tela inicial.
 const existingStores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
 
-if (existingStores[window.comercianteSession.id]) {
+if (existingStores[window.comercianteSession.id]?.location?.sector && existingStores[window.comercianteSession.id]?.location?.street && existingStores[window.comercianteSession.id]?.location?.box) {
 	window.location.href = "inicio_comerciante.html";
 }
 
 if (window.location.protocol !== "file:") {
 	fetch(`/api/stores/${encodeURIComponent(window.comercianteSession.id)}`, { cache: "no-store" }).then(response => response.json()).then(data => {
-		if (!data.store) return;
+		if (!data.store?.location?.sector || !data.store.location.street || !data.store.location.box) return;
 		const stores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
 		stores[window.comercianteSession.id] = data.store;
 		localStorage.setItem(STORES_KEY, JSON.stringify(stores));
@@ -45,6 +45,7 @@ storeForm.addEventListener("submit", event => {
 	const data = new FormData(storeForm);
 	const storeName = String(data.get("storeName") || "").trim();
 	const segments = String(data.get("segment") || "").split(",").map(segment => segment.trim()).filter(Boolean);
+	const location = { sector: String(data.get("locationSector") || "").trim(), street: String(data.get("locationStreet") || "").trim(), box: String(data.get("locationBox") || "").trim() };
 
 	// Validação simples: nome preenchido e pelo menos um segmento marcado.
 	if (!storeName) {
@@ -57,6 +58,11 @@ storeForm.addEventListener("submit", event => {
 		return;
 	}
 
+	if (!location.sector || !location.street || !location.box) {
+		storeNote.textContent = "Informe o setor, a rua e o box da loja no Moda Center.";
+		return;
+	}
+
 	// Salva a loja deste comerciante (indexada pelo id da sessão).
 	const stores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
 
@@ -65,6 +71,7 @@ storeForm.addEventListener("submit", event => {
 			name: storeName,
 			segments: segments,
 			image: image || null,
+			location,
 			createdAt: Date.now()
 		};
 		stores[window.comercianteSession.id] = {

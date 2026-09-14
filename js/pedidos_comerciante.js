@@ -5,6 +5,7 @@ const statuses = ["recebido", "preparando", "postado", "enviado", "entregue", "c
 const labels = { recebido: "Recebido", preparando: "Preparando", postado: "Postado", enviado: "Enviado", entregue: "Entregue", cancelado: "Cancelado" };
 const orderDetailsModal = document.getElementById("orderDetailsModal");
 const orderDetailsContent = document.getElementById("orderDetailsContent");
+let selectedOrderForReceipt = null;
 
 function escapeHtml(value) { return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;"); }
 function money(value) { return `R$ ${Number(value || 0).toFixed(2).replace(".", ",")}`; }
@@ -36,7 +37,9 @@ function renderOrders(orders) {
 function openOrderDetails(orderId, orders) {
     const order = orders.find(item => item.id === orderId);
     if (!order) return;
-    orderDetailsContent.innerHTML = `<h2 id="orderDetailsTitle">Pedido #${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h2><p class="order-client">Cliente: ${escapeHtml(order.clientName)}</p><p class="order-date">${new Date(order.createdAt).toLocaleString("pt-BR")}</p><h3>Produtos da sua loja</h3>${order.items.map(item => `<div class="order-detail-item"><span>${escapeHtml(item.name)}<small>Quantidade: ${item.quantity}</small></span><strong>${money(item.price * item.quantity)}</strong></div>`).join("")}<div class="order-total"><span>Total da sua loja</span><strong>${money(order.total)}</strong></div>`;
+    selectedOrderForReceipt = order;
+    const destination = order.fulfillment === "pickup" ? `<p class="order-destination"><strong>Retirada na loja</strong><br>${(order.pickupLocations || []).map(location => `Setor ${escapeHtml(location.location?.sector)}, Rua ${escapeHtml(location.location?.street)}, Box ${escapeHtml(location.location?.box)}`).join(" · ")}</p>` : `<p class="order-destination"><strong>Entrega</strong><br>${escapeHtml(order.deliveryAddress?.recipient)} · ${escapeHtml(order.deliveryAddress?.street)}, ${escapeHtml(order.deliveryAddress?.city)} - ${escapeHtml(order.deliveryAddress?.state)} · CEP ${escapeHtml(order.deliveryAddress?.zip)}</p>`;
+    orderDetailsContent.innerHTML = `<h2 id="orderDetailsTitle">Pedido #${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h2><p class="order-client">Cliente: ${escapeHtml(order.clientName)}</p><p class="order-date">${new Date(order.createdAt).toLocaleString("pt-BR")}</p>${destination}<h3>Produtos da sua loja</h3>${order.items.map(item => `<div class="order-detail-item"><span>${escapeHtml(item.name)}<small>Quantidade: ${item.quantity}</small></span><strong>${money(item.price * item.quantity)}</strong></div>`).join("")}<div class="order-total"><span>Total da sua loja</span><strong>${money(order.total)}</strong></div>`;
     orderDetailsModal.hidden = false;
 }
 
@@ -54,4 +57,6 @@ document.querySelectorAll(".nav-item").forEach(item => item.addEventListener("cl
 loadOrders();
 setInterval(loadOrders, 10000);
 document.getElementById("closeOrderDetails").addEventListener("click", () => { orderDetailsModal.hidden = true; });
+document.getElementById("downloadStoreReceipt").addEventListener("click", () => { if (selectedOrderForReceipt && window.OrderReceipt?.download) window.OrderReceipt.download(selectedOrderForReceipt, "loja"); });
+document.getElementById("printStoreReceipt").addEventListener("click", () => { if (selectedOrderForReceipt && window.OrderReceipt?.print) window.OrderReceipt.print(selectedOrderForReceipt, "loja"); });
 orderDetailsModal.addEventListener("click", event => { if (event.target === orderDetailsModal) orderDetailsModal.hidden = true; });

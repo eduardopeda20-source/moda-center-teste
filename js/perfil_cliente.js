@@ -30,6 +30,7 @@ const nameInput = document.getElementById("nameInput");
 const photoInput = document.getElementById("photoInput");
 const photoPreview = document.getElementById("photoPreview");
 const editNote = document.getElementById("editNote");
+const addressInputs = { recipient: document.getElementById("addressRecipientInput"), zip: document.getElementById("addressZipInput"), street: document.getElementById("addressStreetInput"), city: document.getElementById("addressCityInput"), state: document.getElementById("addressStateInput"), complement: document.getElementById("addressComplementInput") };
 let pendingAvatar = session.avatar || "";
 
 function initials(name) {
@@ -83,6 +84,8 @@ document.getElementById("editProfileButton").addEventListener("click", () => {
     nameInput.value = session.name || "";
     photoInput.value = "";
     editNote.textContent = "";
+    const address = session.deliveryAddress || {};
+    Object.entries(addressInputs).forEach(([key, input]) => { if (input) input.value = address[key] || ""; });
     if (pendingAvatar) {
         photoPreview.src = pendingAvatar;
         photoPreview.hidden = false;
@@ -128,6 +131,7 @@ profileForm.addEventListener("submit", event => {
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
     }
     const updatedSession = { ...session, name, avatar: pendingAvatar || null };
+    updatedSession.deliveryAddress = Object.fromEntries(Object.entries(addressInputs).map(([key, input]) => [key, input?.value.trim() || ""]));
     localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
     Object.assign(session, updatedSession);
     renderProfile(name, session.email || "", pendingAvatar);

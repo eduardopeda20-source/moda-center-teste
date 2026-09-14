@@ -7,6 +7,10 @@
     <title>Perfil do Comerciante - Moda Center</title>
     <link rel="stylesheet" href="css/perfil_comerciante.css">
     <link rel="stylesheet" href="css/comerciante-navigation.css">
+    <link rel="stylesheet" href="css/assistant.css">
+    <script src="js/assistant.js" defer></script>
+
+
 </head>
 <body>
     <main class="app">
@@ -19,6 +23,7 @@
                     <h1 id="profileTitle"><span id="profileViewName">Jhon Smit</span></h1>
                     <p class="profile-store">▣ <span id="profileStoreName">Moda &amp; Estilo</span></p>
                     <p class="profile-rating"><span>★</span> <strong id="profileAverageRating">0,00</strong> <small>(<span id="profileReviewsCount">0</span> avaliações)</small></p>
+                    <button class="profile-edit-hero-button" id="profileEditHeroButton" type="button"><span>✦</span> Editar meu perfil</button>
                 </div>
                 <button class="profile-camera" type="button" aria-label="Alterar foto">⌾</button>
             </div>
@@ -31,9 +36,9 @@
 
             <div class="profile-shortcuts">
                 <div class="profile-shortcut-grid">
-                    <button class="profile-shortcut shortcut-purple" type="button"><span class="shortcut-icon">◔</span><span><strong>Relatórios</strong><small>Acompanhe suas vendas, produtos e desempenho.</small></span><b>›</b></button>
+                    <button class="profile-shortcut shortcut-purple" id="reportsButton" type="button"><span class="shortcut-icon">◔</span><span><strong>Relatórios</strong><small>Acompanhe suas vendas, produtos e desempenho.</small></span><b>›</b></button>
                     <button class="profile-shortcut shortcut-blue" type="button"><span class="shortcut-icon">▣</span><span><strong>Configuração da loja</strong><small>Gerencie suas informações e preferências.</small></span><b>›</b></button>
-                    <button class="profile-shortcut shortcut-green" type="button"><span class="shortcut-icon">★</span><span><strong>Minhas avaliações</strong><small>Veja o que seus clientes dizem sobre você.</small></span><b>›</b></button>
+                    <button class="profile-shortcut shortcut-green" id="reviewsButton" type="button"><span class="shortcut-icon">★</span><span><strong>Minhas avaliações</strong><small>Veja o que seus clientes dizem sobre você.</small></span><b>›</b></button>
                     <button class="profile-shortcut shortcut-orange" id="latestOrdersButton" type="button"><span class="shortcut-icon">↗</span><span><strong>Últimas vendas</strong><small>Acompanhe seus pedidos e entregas recentes.</small></span><b>›</b></button>
                 </div>
             </div>
@@ -58,6 +63,13 @@
             </section>
         </div>
 
+        <div class="insights-backdrop" id="insightsBackdrop" hidden>
+            <section class="insights-panel" role="dialog" aria-modal="true" aria-labelledby="insightsTitle">
+                <div class="settings-heading"><div><p>DESEMPENHO DA LOJA</p><h2 id="insightsTitle">Relatórios</h2></div><button class="settings-close" id="insightsClose" type="button" aria-label="Fechar">×</button></div>
+                <div id="insightsContent"></div>
+            </section>
+        </div>
+
         <div class="profile-edit-backdrop" id="profileEditBackdrop" aria-hidden="true">
             <section class="profile-edit-panel" role="dialog" aria-modal="true" aria-labelledby="profileEditTitle">
                 <div class="settings-heading">
@@ -74,6 +86,7 @@
                     <label class="profile-edit-field">Nome da loja
                         <input id="editStoreName" name="storeName" type="text" required minlength="2">
                     </label>
+                    <fieldset class="store-location-edit"><legend>Localização para retirada</legend><label class="profile-edit-field">Setor<input id="editStoreSector" type="text" required placeholder="Ex.: Azul"></label><label class="profile-edit-field">Rua<input id="editStoreStreet" type="text" required placeholder="Ex.: F"></label><label class="profile-edit-field">Box<input id="editStoreBox" type="text" required placeholder="Ex.: 347"></label></fieldset>
                     <fieldset class="profile-edit-segments">
                         <legend>Segmentos da loja</legend>
                         <label><input type="checkbox" name="segment" value="masculino"> Masculino</label>
@@ -94,6 +107,36 @@
                 </form>
             </section>
         </div>
+
+        <!-- =================================================
+     MODAL DE TUTORIAL DO PERFIL
+================================================== -->
+<div class="tutorial-modal" id="tutorialModal" style="display: none;">
+    <div class="tutorial-card">
+        <div class="tutorial-header">
+            <span class="assistant-icon">🤖</span>
+            <h2 id="tutorialTitle">Seu Perfil do Comerciante</h2>
+        </div>
+        
+        <div class="tutorial-body">
+            <p id="tutorialText">
+                Aqui você gerencia as informações da sua loja, acompanha vendas e ajusta suas configurações.
+            </p>
+            
+            <div class="tutorial-steps-indicator">
+                <span class="step-dot active" data-step="1"></span>
+                <span class="step-dot" data-step="2"></span>
+                <span class="step-dot" data-step="3"></span>
+                <span class="step-dot" data-step="4"></span>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="btn-secondary" id="skipTutorialBtn">Pular</button>
+            <button class="btn-primary" id="nextTutorialBtn">Próximo</button>
+        </div>
+    </div>
+</div>
 
         <button class="floating-button" aria-label="Adicionar"><span>+</span></button>
 

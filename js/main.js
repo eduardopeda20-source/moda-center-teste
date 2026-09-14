@@ -535,8 +535,12 @@ document
                 // ID ÚNICO DESTA TENTATIVA
                 // --------------------------------------
 
-                const registrationId =
-                    crypto.randomUUID();
+                 const registrationId =
+                    (typeof crypto !== "undefined" &&
+                    typeof crypto.randomUUID === "function")
+                        ? crypto.randomUUID()
+                        : `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
 
 
                 setNote(
@@ -700,6 +704,15 @@ document
                     // ==================================
                     // COMERCIANTE
                     // ==================================
+
+                    if (
+                        user.profile ===
+                        "administrador"
+                    ) {
+                        closeAuth();
+                        window.location.href = "admin.html";
+                        return;
+                    }
 
                     if (
                         user.profile ===
@@ -903,6 +916,16 @@ document
 
                                 closeAuth();
 
+
+                                // ------------------------
+                                // Administrador
+                                // ------------------------
+
+                                if (user.profile === "administrador") {
+                                    closeAuth();
+                                    window.location.href = "admin.html";
+                                    return;
+                                }
 
                                 // ------------------------
                                 // Comerciante
@@ -1110,7 +1133,9 @@ document
                 // REDIRECIONA
                 // ------------------------------------------
 
-                if (
+                if (profile === "administrador") {
+                    window.location.href = "admin.html";
+                } else if (
                     profile ===
                     "comerciante"
                 ) {
@@ -1250,7 +1275,10 @@ document
         // (inicio_comerciante.html e as demais telas). Contas "cliente"
         // permanecem na página inicial — a área do comerciante ainda
         // não existe para esse perfil.
-        if (user.profile === "comerciante") {
+        if (user.profile === "administrador") {
+            closeAuth();
+            window.location.href = "admin.html";
+        } else if (user.profile === "comerciante") {
 
             // Fecha modal
             closeAuth();

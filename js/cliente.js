@@ -17,8 +17,23 @@ const cartPanel = document.getElementById("cartPanel");
 const cartItemsElement = document.getElementById("cartItems");
 const cartTotalElement = document.getElementById("cartTotal");
 const checkoutButton = document.getElementById("checkoutButton");
+const checkoutModal = document.getElementById("checkoutModal");
+const checkoutNote = document.getElementById("checkoutNote");
+const deliveryAddressFields = document.getElementById("deliveryAddressFields");
+const pickupInfo = document.getElementById("pickupInfo");
+const orderReceiptModal = document.getElementById("orderReceiptModal");
+const receiptSummary = document.getElementById("receiptSummary");
+const addressInputs = { recipient: document.getElementById("deliveryRecipient"), zip: document.getElementById("deliveryZip"), street: document.getElementById("deliveryStreet"), city: document.getElementById("deliveryCity"), state: document.getElementById("deliveryState"), complement: document.getElementById("deliveryComplement") };
 const productDetailsModal = document.getElementById("productDetailsModal");
 const productDetailsContent = document.getElementById("productDetailsContent");
+const styleStudioModal = document.getElementById("styleStudioModal");
+const magicMirrorModal = document.getElementById("magicMirrorModal");
+const lookForm = document.getElementById("lookForm");
+const lookResult = document.getElementById("lookResult");
+const mirrorPhoto = document.getElementById("mirrorPhoto");
+const mirrorStage = document.getElementById("mirrorStage");
+const mirrorLookItems = document.getElementById("mirrorLookItems");
+const saveMirrorPhotoButton = document.getElementById("saveMirrorPhoto");
 const stores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
 let catalogProducts = [];
 let catalogStores = stores;
@@ -53,6 +68,161 @@ function readProducts() {
     if (catalogProducts.length) return catalogProducts;
     const allProducts = JSON.parse(localStorage.getItem(PRODUCTS_KEY) || "{}");
     return Object.entries(allProducts).flatMap(([ownerId, products]) => (Array.isArray(products) ? products : []).map(product => ({ ...product, ownerId })));
+}
+
+function readStylePreferences() {
+    const saved = JSON.parse(localStorage.getItem("modaCenterStylePreferences") || "{}");
+    return saved[session?.id] || {};
+}
+
+function saveStylePreferences(preferences) {
+    const saved = JSON.parse(localStorage.getItem("modaCenterStylePreferences") || "{}");
+    saved[session.id] = preferences;
+    localStorage.setItem("modaCenterStylePreferences", JSON.stringify(saved));
+}
+
+function productText(product) { return `${product.name || ""} ${product.category || ""} ${(product.segments || []).join(" ")}`.toLowerCase(); }
+function scoreLookProduct(product, role, occasion, style, preference) {
+    const text = productText(product);
+    const roleWords = { top: ["blusa", "camisa", "cropped", "regata", "top", "jaqueta", "blazer", "casaco", "vestido"], bottom: ["calça", "saia", "short", "bermuda", "jeans", "legging"], shoe: ["sapato", "tênis", "sandália", "sapatilha", "bota", "salto"], accessory: ["bolsa", "cinto", "brinco", "colar", "acessório"] };
+    const occasionWords = { casamento: ["vestido", "blazer", "social", "elegante", "salto"], trabalho: ["blazer", "camisa", "calça", "social"], casual: ["jeans", "tênis", "blusa", "confortável"], encontro: ["vestido", "saia", "blusa", "elegante"], "fim de semana": ["short", "bermuda", "tênis", "confortável"] };
+    const styleWords = { elegante: ["social", "blazer", "vestido", "alfaiataria"], confortável: ["moletom", "malha", "tênis", "legging"], minimalista: ["básico", "liso", "neutro", "branco", "preto"], marcante: ["estamp", "vermelho", "brilho", "color"], romântico: ["flor", "renda", "saia", "vestido"] };
+    let score = Number(product.quantity || 0) > 0 ? 1 : -100;
+    if (roleWords[role].some(word => text.includes(word))) score += 6;
+    const occasionText = occasion.toLowerCase();
+    const styleText = style.toLowerCase();
+    if (Object.entries(occasionWords).some(([key, words]) => occasionText.includes(key) && words.some(word => text.includes(word)))) score += 3;
+    if (Object.entries(styleWords).some(([key, words]) => styleText.includes(key) && words.some(word => text.includes(word)))) score += 3;
+    if (preference && preference.split(/[, ]+/).some(word => word.length > 2 && text.includes(word.toLowerCase()))) score += 5;
+    return score;
+}
+
+function chooseLookProducts(occasion, style, preference, budget) {
+    const products = readProducts().filter(product => Number(product.quantity || 0) > 0);
+    const roles = ["top", "bottom", "shoe"];
+    const selected = [];
+    roles.forEach(role => {
+        const candidate = products.filter(product => !selected.includes(product)).map(product => ({ product, score: scoreLookProduct(product, role, occasion, style, preference) })).sort((a, b) => b.score - a.score)[0]?.product;
+        if (candidate) selected.push(candidate);
+    });
+    const total = selected.reduce((sum, product) => sum + Number(product.price || 0) * (1 - Number(product.discount || 0) / 100), 0);
+    if (budget > 0 && total > budget) {
+        selected.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+        while (selected.length > 1 && selected.reduce((sum, product) => sum + Number(product.price || 0) * (1 - Number(product.discount || 0) / 100), 0) > budget) selected.pop();
+    }
+    return selected;
+}
+
+function lookTotal(products) { return products.reduce((sum, product) => sum + Number(product.price || 0) * (1 - Number(product.discount || 0) / 100), 0); }
+function addLookToCart(products) { products.forEach(product => buyProduct(product.id, null, 1)); cartPanel.hidden = false; }
+function setMirrorLook(products) {
+    mirrorLookItems.innerHTML = products.length ? products.map(product => `<span><img src="${escapeHtml(product.image || PLACEHOLDER)}" alt="">${escapeHtml(product.name)}</span>`).join("") : "<p>Crie um look primeiro para visualizar as peças.</p>";
+    mirrorLookItems.dataset.productIds = products.map(product => product.id).join(",");
+}
+
+function getMirrorProducts() {
+    const ids = String(mirrorLookItems.dataset.productIds || "").split(",").filter(Boolean);
+    return readProducts().filter(product => ids.includes(String(product.id)));
+}
+
+function drawCoverImage(context, image, x, y, width, height) {
+    const scale = Math.max(width / image.width, height / image.height);
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+function saveMirrorPhoto() {
+    if (!mirrorPhoto.src || mirrorPhoto.hidden) {
+        mirrorStage.classList.add("mirror-needs-photo");
+        return;
+    }
+    const renderDownload = image => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1200;
+        canvas.height = 1500;
+        const context = canvas.getContext("2d");
+        const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+        background.addColorStop(0, "#321173");
+        background.addColorStop(.55, "#6e2bd4");
+        background.addColorStop(1, "#ff7a18");
+        context.fillStyle = background;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.globalAlpha = .12;
+        context.fillStyle = "#ffffff";
+        for (let y = 80; y < canvas.height; y += 190) for (let x = -100; x < canvas.width; x += 280) { context.beginPath(); context.arc(x, y, 90, 0, Math.PI * 2); context.fill(); }
+        context.globalAlpha = 1;
+        context.fillStyle = "#ffffff";
+        context.font = "700 44px Arial";
+        context.fillText("MODA CENTER", 70, 90);
+        context.font = "500 20px Arial";
+        context.fillText("ESPELHO MÁGICO · MEU LOOK", 72, 124);
+        context.save();
+        context.beginPath();
+        context.roundRect(55, 165, 1090, 920, 28);
+        context.clip();
+        context.fillStyle = "#f8f4ff";
+        context.fillRect(55, 165, 1090, 920);
+        drawCoverImage(context, image, 75, 185, 650, 880);
+        context.restore();
+        context.fillStyle = "rgba(255,255,255,.94)";
+        context.beginPath();
+        context.roundRect(755, 205, 350, 840, 22);
+        context.fill();
+        context.fillStyle = "#321173";
+        context.font = "700 27px Arial";
+        context.fillText("Peças do look", 790, 260);
+        let itemY = 315;
+        getMirrorProducts().forEach(product => {
+            context.fillStyle = "#21183b";
+            context.font = "700 22px Arial";
+            context.fillText(String(product.name || "Produto").slice(0, 22), 790, itemY);
+            context.fillStyle = "#5926c9";
+            context.font = "600 20px Arial";
+            context.fillText(`R$ ${Number(product.price || 0).toFixed(2).replace(".", ",")}`, 790, itemY + 31);
+            itemY += 92;
+        });
+        context.fillStyle = "rgba(50,17,115,.2)";
+        context.font = "700 35px Arial";
+        context.rotate(-.18);
+        context.fillText("MODA CENTER", 105, 960);
+        context.rotate(.18);
+        context.fillStyle = "#ffffff";
+        context.font = "500 18px Arial";
+        context.fillText("Imagem criada no Moda Center", 70, 1415);
+        const link = document.createElement("a");
+        document.body.appendChild(link);
+        link.download = `meu-look-moda-center-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        window.setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 1000);
+    };
+    if (mirrorPhoto.complete) renderDownload(mirrorPhoto);
+    else {
+        const image = new Image();
+        image.onload = () => renderDownload(image);
+        image.src = mirrorPhoto.src;
+    }
+}
+
+function openLookStudio() {
+    const preferences = readStylePreferences();
+    document.getElementById("lookOccasion").value = preferences.occasion || "";
+    document.getElementById("lookStyle").value = preferences.style || "";
+    document.getElementById("lookPreference").value = preferences.preference || "";
+    document.getElementById("lookBudget").value = preferences.budget || "";
+    lookResult.hidden = true;
+    styleStudioModal.hidden = false;
+}
+
+function renderLookResult(products, occasion, style) {
+    const total = lookTotal(products);
+    lookResult.innerHTML = products.length ? `<div class="look-result-heading"><div><span>LOOK SUGERIDO</span><h3>${escapeHtml(occasion)} · ${escapeHtml(style)}</h3></div><strong>R$ ${total.toFixed(2).replace(".", ",")}</strong></div><div class="look-product-list">${products.map(product => { const finalPrice = Number(product.price || 0) * (1 - Number(product.discount || 0) / 100); return `<article><img src="${escapeHtml(product.image || PLACEHOLDER)}" alt="${escapeHtml(product.name)}"><div><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.category || "Moda")} · R$ ${finalPrice.toFixed(2).replace(".", ",")}</small></div></article>`; }).join("")}</div><div class="look-result-actions"><button id="saveLookButton" type="button">♡ Salvar look</button><button id="addLookButton" type="button">Adicionar tudo ao carrinho</button><button id="mirrorFromLookButton" type="button">Ver no espelho mágico</button></div>` : `<p class="look-empty">Não encontrei peças suficientes disponíveis para montar este look.</p>`;
+    lookResult.hidden = false;
+    setMirrorLook(products);
+    document.getElementById("addLookButton")?.addEventListener("click", () => { addLookToCart(products); lookResult.querySelector(".look-result-actions").insertAdjacentHTML("afterend", '<p class="look-feedback">Look adicionado ao carrinho.</p>'); });
+    document.getElementById("saveLookButton")?.addEventListener("click", () => { const saved = JSON.parse(localStorage.getItem("modaCenterSavedLooks") || "{}"); saved[session.id] ||= []; saved[session.id].unshift({ id: Date.now(), occasion, style, productIds: products.map(product => product.id), createdAt: Date.now() }); localStorage.setItem("modaCenterSavedLooks", JSON.stringify(saved)); document.getElementById("saveLookButton").textContent = "✓ Look salvo"; });
+    document.getElementById("mirrorFromLookButton")?.addEventListener("click", () => { styleStudioModal.hidden = true; magicMirrorModal.hidden = false; });
 }
 
 async function loadCatalog() {
@@ -105,6 +275,15 @@ function saveCart(cart) {
     const carts = JSON.parse(localStorage.getItem(CART_KEY) || "{}");
     carts[session.id] = cart;
     localStorage.setItem(CART_KEY, JSON.stringify(carts));
+}
+
+function getSavedAddress() { return session.deliveryAddress && typeof session.deliveryAddress === "object" ? session.deliveryAddress : {}; }
+function fillCheckoutAddress() { const address = getSavedAddress(); Object.entries(addressInputs).forEach(([key, input]) => { if (input) input.value = address[key] || ""; }); }
+function readCheckoutAddress() { return Object.fromEntries(Object.entries(addressInputs).map(([key, input]) => [key, input?.value.trim() || ""])); }
+function getCartStores() {
+    const products = readProducts();
+    const localStores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
+    return [...new Map(getCart().map(item => products.find(product => String(product.id) === String(item.productId))).filter(Boolean).map(product => [String(product.ownerId), product])).values()].map(product => ({ name: catalogStores[product.ownerId]?.name || localStores[product.ownerId]?.name || product.ownerName || "Loja Moda Center", location: catalogStores[product.ownerId]?.location || localStores[product.ownerId]?.location || null }));
 }
 
 function getVariations(product) {
@@ -228,11 +407,34 @@ function renderCart() {
 async function checkoutCart() {
     const cart = getCart();
     if (!cart.length) return;
+    fillCheckoutAddress();
+    checkoutNote.textContent = "";
+    document.querySelector('input[name="fulfillment"][value="delivery"]').checked = true;
+    deliveryAddressFields.hidden = false;
+    pickupInfo.hidden = true;
+    checkoutModal.hidden = false;
+}
+
+async function confirmCheckout() {
+    const cart = getCart();
+    if (!cart.length) return;
+    const fulfillment = document.querySelector('input[name="fulfillment"]:checked')?.value || "delivery";
+    const address = readCheckoutAddress();
+    if (fulfillment === "delivery" && (!address.recipient || !address.zip || !address.street || !address.city || !address.state)) { checkoutNote.textContent = "Preencha os dados obrigatórios de entrega."; return; }
+    if (fulfillment === "pickup" && getCartStores().some(store => !store.location?.sector || !store.location?.street || !store.location?.box)) { checkoutNote.textContent = "Uma das lojas deste carrinho ainda não informou o box para retirada."; return; }
     checkoutButton.disabled = true;
+    document.getElementById("confirmCheckout").disabled = true;
+    if (fulfillment === "delivery" && document.getElementById("saveDeliveryAddress").checked) {
+        const updatedSession = { ...session, deliveryAddress: address };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+        Object.assign(session, updatedSession);
+    }
+    let completedOrder;
     if (API_ENABLED) {
-        const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId: session.id, clientName: session.name || "Cliente", items: cart.map(entry => ({ productId: entry.productId, variationId: entry.variationId || null, quantity: entry.quantity })) }) });
-        if (!response.ok) { noteElement.textContent = "Não foi possível finalizar o pedido. Verifique o estoque."; checkoutButton.disabled = false; renderCart(); return; }
+        const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientId: session.id, clientName: session.name || "Cliente", fulfillment, deliveryAddress: fulfillment === "delivery" ? address : null, pickupLocations: fulfillment === "pickup" ? getCartStores() : [], items: cart.map(entry => ({ productId: entry.productId, variationId: entry.variationId || null, quantity: entry.quantity })) }) });
+        if (!response.ok) { checkoutNote.textContent = "Não foi possível finalizar o pedido. Verifique o estoque."; checkoutButton.disabled = false; document.getElementById("confirmCheckout").disabled = false; renderCart(); return; }
         const data = await response.json();
+        completedOrder = data.order;
         catalogProducts = data.products || catalogProducts;
     } else {
         const products = readProducts();
@@ -246,13 +448,21 @@ async function checkoutCart() {
             product.salesCount = Number(product.salesCount || 0) + item.quantity;
         }
         saveProducts(products);
+        const localItems = cart.map(item => { const product = products.find(entry => String(entry.id) === String(item.productId)); return { productId: item.productId, variationId: item.variationId || null, variation: getVariation(product, item.variationId), name: product?.name, ownerName: product?.ownerName, price: product?.price, quantity: item.quantity }; });
+        completedOrder = { id: `local-${Date.now()}`, clientName: session.name || "Cliente", fulfillment, deliveryAddress: fulfillment === "delivery" ? address : null, pickupLocations: fulfillment === "pickup" ? getCartStores() : [], items: localItems, total: localItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0), createdAt: Date.now() };
     }
     cart.forEach(item => savePurchase(item.productId));
     saveCart([]);
     noteElement.textContent = "Compra finalizada com sucesso.";
+    checkoutModal.hidden = true;
+    document.getElementById("confirmCheckout").disabled = false;
+    checkoutButton.disabled = false;
     cartPanel.hidden = true;
     renderCart();
     render();
+    window.lastCompletedOrder = completedOrder;
+    receiptSummary.textContent = `Pedido #${String(completedOrder.id).slice(0, 8).toUpperCase()} confirmado. Baixe a nota ou imprima para guardar seu comprovante.`;
+    orderReceiptModal.hidden = false;
 }
 
 function readMedia(file) {
@@ -307,7 +517,10 @@ function openProductDetails(productId) {
     const selectedInCart = selectedVariation ? getCartQuantity(product.id, selectedVariation.id) : cartQuantity;
     const quantityOptions = `<div class="quantity-choice"><div><strong>Quantidade</strong><small id="quantityStock">${Math.max(0, selectedStock - selectedInCart)} disponíveis</small></div><div class="quantity-control"><button id="quantityDecrease" type="button" aria-label="Diminuir quantidade">−</button><output id="purchaseQuantity" for="quantityDecrease quantityIncrease">1</output><button id="quantityIncrease" type="button" aria-label="Aumentar quantidade">+</button></div></div>`;
     const wholesale = product.wholesale && Number(product.wholesale.minQuantity) >= 2 ? `<div class="wholesale-box">🏷️ Atacado: a partir de ${Number(product.wholesale.minQuantity)} peças por R$ ${Number(product.wholesale.price).toFixed(2).replace(".", ",")} cada.</div>` : "";
-    productDetailsContent.innerHTML = `<h2 id="productDetailsTitle">${escapeHtml(product.name)}</h2><img class="details-product-image" src="${escapeHtml(product.image || PLACEHOLDER)}" alt="${escapeHtml(product.name)}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"><div class="details-meta"><span>${escapeHtml(product.category || "Produto")}</span><strong>R$ ${Number(product.price || 0).toFixed(2).replace(".", ",")}</strong><span>${Number(product.quantity || 0)} em estoque</span></div><p class="details-description">${escapeHtml(product.description || "O vendedor ainda não adicionou uma descrição.")}</p>${variationOptions}${quantityOptions}${wholesale}<button id="detailsAddToCart" class="buy-button" type="button" ${canAdd ? "" : "disabled"}>${cartQuantity ? `Adicionar mais (${cartQuantity} no carrinho)` : "Adicionar ao carrinho"}</button><a class="chat-button" href="chat_comerciante.html?merchant=${encodeURIComponent(product.ownerId)}">Conversar com a loja</a><h3 class="reviews-title">Avaliações (${ratings.length})</h3><div>${reviews}</div>${delivered ? `<div class="review-form"><strong>Deixe sua avaliação</strong><select id="detailsRating"><option value="">Escolha de 1 a 5 estrelas</option><option value="1">1 estrela</option><option value="2">2 estrelas</option><option value="3">3 estrelas</option><option value="4">4 estrelas</option><option value="5">5 estrelas</option></select><input id="detailsReviewMedia" type="file" accept="image/*,video/*"><button id="detailsRatingButton" class="rating-button" type="button">Enviar avaliação</button></div>` : purchased ? `<p class="review-waiting">A avaliação ficará disponível após a entrega.</p>` : ""}`;
+    const localStores = JSON.parse(localStorage.getItem(STORES_KEY) || "{}");
+    const storeLocation = catalogStores[product.ownerId]?.location || localStores[product.ownerId]?.location;
+    const pickupLocation = storeLocation?.sector && storeLocation?.street && storeLocation?.box ? `<p class="pickup-location">📍 Retirada no Moda Center: Setor ${escapeHtml(storeLocation.sector)}, Rua ${escapeHtml(storeLocation.street)}, Box ${escapeHtml(storeLocation.box)}</p>` : "";
+    productDetailsContent.innerHTML = `<h2 id="productDetailsTitle">${escapeHtml(product.name)}</h2><img class="details-product-image" src="${escapeHtml(product.image || PLACEHOLDER)}" alt="${escapeHtml(product.name)}" onerror="this.onerror=null;this.src='${PLACEHOLDER}'"><div class="details-meta"><span>${escapeHtml(product.category || "Produto")}</span><strong>R$ ${Number(product.price || 0).toFixed(2).replace(".", ",")}</strong><span>${Number(product.quantity || 0)} em estoque</span></div>${pickupLocation}<p class="details-description">${escapeHtml(product.description || "O vendedor ainda não adicionou uma descrição.")}</p>${variationOptions}${quantityOptions}${wholesale}<button id="detailsAddToCart" class="buy-button" type="button" ${canAdd ? "" : "disabled"}>${cartQuantity ? `Adicionar mais (${cartQuantity} no carrinho)` : "Adicionar ao carrinho"}</button><a class="chat-button" href="chat_comerciante.html?merchant=${encodeURIComponent(product.ownerId)}">Conversar com a loja</a><h3 class="reviews-title">Avaliações (${ratings.length})</h3><div>${reviews}</div>${delivered ? `<div class="review-form"><strong>Deixe sua avaliação</strong><select id="detailsRating"><option value="">Escolha de 1 a 5 estrelas</option><option value="1">1 estrela</option><option value="2">2 estrelas</option><option value="3">3 estrelas</option><option value="4">4 estrelas</option><option value="5">5 estrelas</option></select><input id="detailsReviewMedia" type="file" accept="image/*,video/*"><button id="detailsRatingButton" class="rating-button" type="button">Enviar avaliação</button></div>` : purchased ? `<p class="review-waiting">A avaliação ficará disponível após a entrega.</p>` : ""}`;
     productDetailsModal.hidden = false;
     let selectedVariationId = selectedVariation?.id || null;
     let purchaseQuantity = 1;
@@ -336,6 +549,38 @@ cartButton.addEventListener("click", () => { renderCart(); cartPanel.hidden = fa
 document.getElementById("closeCart").addEventListener("click", () => { cartPanel.hidden = true; });
 document.getElementById("continueShopping").addEventListener("click", () => { cartPanel.hidden = true; });
 checkoutButton.addEventListener("click", checkoutCart);
+document.getElementById("confirmCheckout").addEventListener("click", confirmCheckout);
+document.getElementById("closeReceipt").addEventListener("click", () => { orderReceiptModal.hidden = true; });
+document.getElementById("downloadReceipt").addEventListener("click", () => { if (window.OrderReceipt?.download) window.OrderReceipt.download(window.lastCompletedOrder, "cliente"); });
+document.getElementById("printReceipt").addEventListener("click", () => { if (window.OrderReceipt?.print) window.OrderReceipt.print(window.lastCompletedOrder, "cliente"); });
+orderReceiptModal.addEventListener("click", event => { if (event.target === orderReceiptModal) orderReceiptModal.hidden = true; });
+document.getElementById("styleAssistantButton")?.addEventListener("click", openLookStudio);
+document.getElementById("lookGeneratorButton")?.addEventListener("click", openLookStudio);
+document.getElementById("magicMirrorButton")?.addEventListener("click", () => { magicMirrorModal.hidden = false; });
+document.getElementById("closeStyleStudio")?.addEventListener("click", () => { styleStudioModal.hidden = true; });
+document.getElementById("closeMagicMirror")?.addEventListener("click", () => { magicMirrorModal.hidden = true; });
+document.querySelectorAll(".style-studio-modal").forEach(modal => modal.addEventListener("click", event => { if (event.target === modal) modal.hidden = true; }));
+lookForm?.addEventListener("submit", event => {
+    event.preventDefault();
+    const occasion = document.getElementById("lookOccasion").value;
+    const style = document.getElementById("lookStyle").value;
+    const preference = document.getElementById("lookPreference").value.trim();
+    const budget = Number(document.getElementById("lookBudget").value || 0);
+    saveStylePreferences({ occasion, style, preference, budget });
+    renderLookResult(chooseLookProducts(occasion, style, preference, budget), occasion, style);
+});
+document.getElementById("mirrorPhotoInput")?.addEventListener("change", event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { mirrorPhoto.src = reader.result; mirrorPhoto.hidden = false; saveMirrorPhotoButton.disabled = false; mirrorStage.querySelector(".mirror-placeholder")?.remove(); };
+    reader.readAsDataURL(file);
+});
+document.getElementById("mirrorOpenLook")?.addEventListener("click", () => { magicMirrorModal.hidden = true; openLookStudio(); });
+saveMirrorPhotoButton?.addEventListener("click", saveMirrorPhoto);
+document.getElementById("closeCheckout").addEventListener("click", () => { checkoutModal.hidden = true; });
+document.querySelectorAll('input[name="fulfillment"]').forEach(input => input.addEventListener("change", () => { const pickup = input.value === "pickup" && input.checked; deliveryAddressFields.hidden = pickup; pickupInfo.hidden = !pickup; if (pickup) { const stores = getCartStores(); pickupInfo.innerHTML = `<strong>Locais de retirada</strong>${stores.map(store => `<span>📍 ${escapeHtml(store.name)}: Setor ${escapeHtml(store.location?.sector || "não informado")}, Rua ${escapeHtml(store.location?.street || "-")}, Box ${escapeHtml(store.location?.box || "-")}</span>`).join("")}`; } }));
+checkoutModal.addEventListener("click", event => { if (event.target === checkoutModal) checkoutModal.hidden = true; });
 document.getElementById("closeProductDetails").addEventListener("click", () => { productDetailsModal.hidden = true; });
 productDetailsModal.addEventListener("click", event => { if (event.target === productDetailsModal) productDetailsModal.hidden = true; });
 render();

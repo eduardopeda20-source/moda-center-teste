@@ -8,6 +8,8 @@
     <title>Central de Marketing - Moda Center</title>
     <link rel="stylesheet" href="css/marketing_comerciante.css">
     <link rel="stylesheet" href="css/comerciante-navigation.css">
+    <link rel="stylesheet" href="css/assistant.css">
+    <script src="js/assistant.js" defer></script>
 </head>
 
 <body>
@@ -83,7 +85,7 @@
                     <b>›</b>
                 </button>
 
-                <button class="marketing-card card-orange" type="button">
+                <button class="marketing-card card-orange" id="promotionsCard" type="button">
                     <span class="card-icon">%</span>
                     <span>
                         <strong>Promoções</strong>
@@ -101,7 +103,7 @@
                     <b>›</b>
                 </button>
 
-                <button class="marketing-card card-blue" type="button">
+                <button class="marketing-card card-blue" id="flashOffersCard" type="button">
                     <span class="card-icon">⚡</span>
                     <span>
                         <strong>Ofertas e Relâmpago da Loja</strong>
@@ -139,6 +141,11 @@
 
             </div>
 
+            <section class="campaign-panel" aria-live="polite">
+                <div class="campaign-heading"><div><p>ATIVAS NA SUA LOJA</p><h2>Campanhas que estão rodando</h2></div><span id="campaignCount">0</span></div>
+                <div id="campaignList" class="campaign-list"><p class="campaign-empty">Nenhuma campanha criada ainda.</p></div>
+            </section>
+
             <!-- Banner de dicas -->
             <div class="marketing-banner">
                 <span class="banner-icon" aria-hidden="true">🏪</span>
@@ -153,6 +160,26 @@
 
         <!-- Mensagens curtas de retorno (ex.: "recurso em desenvolvimento"). -->
         <div class="toast" id="toast"></div>
+
+        <div class="campaign-backdrop" id="campaignBackdrop" hidden>
+            <section class="campaign-dialog" role="dialog" aria-modal="true" aria-labelledby="campaignTitle">
+                <div class="campaign-dialog-heading"><div><p id="campaignEyebrow">NOVA CAMPANHA</p><h2 id="campaignTitle">Criar promoção</h2></div><button id="closeCampaign" type="button" aria-label="Fechar">×</button></div>
+                <form id="campaignForm">
+                    <label>Nome da campanha<input id="campaignName" type="text" required maxlength="60" placeholder="Ex.: Semana do jeans"></label>
+                    <label>Desconto (%)<input id="campaignDiscount" type="number" min="1" max="90" required></label>
+                    <label>Aplicar em<select id="campaignScope"><option value="all">Todos os produtos</option><option value="category">Uma categoria</option><option value="product">Um produto</option></select></label>
+                    <label id="campaignCategoryField" hidden>Categoria<select id="campaignCategory"></select></label>
+                    <label id="campaignProductField" hidden>Produto<select id="campaignProduct"></select></label>
+                    <div id="flashFields" hidden>
+                        <label>Começa em<input id="flashStart" type="datetime-local"></label>
+                        <label>Termina em<input id="flashEnd" type="datetime-local"></label>
+                        <label class="check-field"><input id="flashUntilStock" type="checkbox"> Encerrar quando o estoque acabar</label>
+                    </div>
+                    <p id="campaignNote" class="campaign-note" role="status"></p>
+                    <button class="campaign-save" type="submit">Ativar campanha</button>
+                </form>
+            </section>
+        </div>
 
         <!-- =====================================================
              BOTÃO FLUTUANTE
@@ -197,6 +224,36 @@
         </nav>
 
     </main>
+    <!-- Modal do Tutorial de Marketing -->
+<div class="tutorial-modal" id="tutorialModal" style="display: none;">
+    <div class="tutorial-card">
+        <div class="tutorial-header">
+            <span class="assistant-icon">🤖</span>
+            <h2 id="tutorialTitle">Central de Marketing</h2>
+        </div>
+
+        <div class="tutorial-body">
+            <p id="tutorialText">
+                Conheça as ferramentas para divulgar seus produtos e aumentar suas vendas.
+            </p>
+
+            <div class="tutorial-steps-indicator">
+                <span class="step-dot active" data-step="1"></span>
+                <span class="step-dot" data-step="2"></span>
+                <span class="step-dot" data-step="3"></span>
+                <span class="step-dot" data-step="4"></span>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="btn-secondary" id="skipTutorialBtn">Pular</button>
+            <button class="btn-primary" id="nextTutorialBtn">Próximo</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/assistant.js" defer></script>
+</body>
 
     <script src="js/comerciante-guard.js"></script>
     <script src="js/marketing_comerciante.js"></script>

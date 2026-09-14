@@ -36,7 +36,6 @@ function writeDatabase(database) {
 }
 
 function sendJson(response, status, payload) {
-    setSecurityHeaders(response);
     response.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
     response.end(JSON.stringify(payload));
 }
@@ -533,20 +532,6 @@ function serveStatic(response, urlPath) {
         response.writeHead(200, { "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream", "Cache-Control": "no-cache" });
         response.end(content);
     });
-}
-
-function safePathFromUrl(urlPath) {
-    const decoded = decodeURIComponent(urlPath);
-    const relative = decoded === "/" ? "index.html" : decoded.replace(/^\/+/, "");
-    const resolved = path.resolve(ROOT, relative);
-    const rootResolved = path.resolve(ROOT);
-    return resolved === rootResolved || resolved.startsWith(rootResolved + path.sep) ? resolved : null;
-}
-
-function setSecurityHeaders(response) {
-    response.setHeader("X-Content-Type-Options", "nosniff");
-    response.setHeader("X-Frame-Options", "SAMEORIGIN");
-    response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
 }
 
 const server = http.createServer(async (request, response) => {

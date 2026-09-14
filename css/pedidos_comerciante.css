@@ -1,3 +1,5 @@
+.order-destination { margin: 14px 0; padding: 10px; border-radius: 10px; color: var(--muted); background: #f8f6fc; font-size: 12px; line-height: 1.5; }.order-destination strong { color: var(--ink); }
+.order-note-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }.order-note-actions button { flex: 1; min-width: 180px; min-height: 40px; border: 0; border-radius: 9px; color: #fff; background: var(--purple); font-size: 12px; font-weight: 800; }.order-note-actions button + button { color: var(--purple); background: #f0eafa; }
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 :root { --ink:#21183b; --muted:#7e7890; --purple:#5926c9; --purple-dark:#321173; --orange:#ff7a18; --background:#f7f5fb; --line:#ebe7f3; }
 * { box-sizing:border-box; }

@@ -2,6 +2,8 @@
 <html lang="pt-BR">
 
 <head>
+    <link rel="stylesheet" href="css/assistant.css">
+    <script src="js/assistant.js" defer></script>
 
     <meta charset="UTF-8">
 
@@ -480,6 +482,43 @@
 
     <script src="js/chat_comerciante.js"></script>
 
+
+
+
+    <!-- =================================================
+     MODAL DE BOAS-VINDAS E TUTORIAL DO ROBÔ GUIA
+================================================== -->
+<div class="tutorial-modal" id="tutorialModal" style="display: none;">
+    <div class="tutorial-card">
+        <div class="tutorial-header">
+            <span class="assistant-icon">🤖</span>
+            <h2 id="tutorialTitle">Bem-vindo ao Moda Center!</h2>
+        </div>
+        
+        <div class="tutorial-body">
+            <p id="tutorialText">
+                Olá! Eu sou o seu **Robô Guia**. Estou aqui para ajudar você a navegar pelas lojas, encontrar produtos e tirar todas as suas dúvidas.
+            </p>
+            
+            <div class="tutorial-steps-indicator">
+                <span class="step-dot active" data-step="1"></span>
+                <span class="step-dot" data-step="2"></span>
+                <span class="step-dot" data-step="3"></span>
+            </div>
+        </div>
+
+        <div class="tutorial-footer">
+            <button class="btn-secondary" id="skipTutorialBtn">Pular Tutorial</button>
+            <button class="btn-primary" id="nextTutorialBtn">Próximo</button>
+        </div>
+    </div>
+</div>
+    <div class="tutorial-steps-indicator">
+    <span class="step-dot active" data-step="1"></span>
+    <span class="step-dot" data-step="2"></span>
+    <span class="step-dot" data-step="3"></span>
+    <span class="step-dot" data-step="4"></span>
+</div>
 </body>
 
 </html>
